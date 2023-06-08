@@ -66,26 +66,29 @@ public class SwerveModule {
     private void setAngle(SwerveModuleState desiredState){
         Rotation2d angle = (Math.abs(desiredState.speedMetersPerSecond) <= (Constants.Swerve.maxSpeed * 0.01)) ? lastAngle : desiredState.angle; //Prevent rotating module if speed is less then 1%. Prevents Jittering.
         
-        mAngleMotor.set(ControlMode.Position, Conversions.degreesToFalcon(angle.getDegrees(), Constants.Swerve.angleGearRatio));
+        mAngleMotor.set(desiredState.speedMetersPerSecond/Constants.Swerve.maxSpeed);
         lastAngle = angle;
     }
 
     private Rotation2d getAngle(){
-        return Rotation2d.fromDegrees(Conversions.falconToDegrees(angleEncoder.getFPGAIndex(), Constants.Swerve.angleGearRatio));
+        double angle = Math.IEEEremainder(angleEncoder.get(), Constants.Swerve.anglePPR)/Constants.Swerve.anglePPR*360;
+        return Rotation2d.fromDegrees(angle);
     }
 
     public Rotation2d getCanCoder(){
-        return Rotation2d.fromDegrees(angleEncoder.getDistance());
+        return getAngle();//Not sure how this is different from getAngle() it was returning and absolute value, but it should still just be the angle
     }
 
     public void resetToAbsolute(){
         double absolutePosition = Conversions.degreesToFalcon(getCanCoder().getDegrees() - angleOffset.getDegrees(), Constants.Swerve.angleGearRatio);
         angleEncoder.setDistancePerPulse(absolutePosition);
     }
-//TODO: Need to figure out absolute postiton calc
+//TODO: Set Angle Encoder values
     private void configAngleEncoder(){        
-        angleEncoder.configFactoryDefault();
-        angleEncoder.configAllSettings(Robot.ctreConfigs.swerveCanCoderConfig);
+        angleEncoder.setDistancePerPulse();
+        angleEncoder.setMinRate();
+        angleEncoder.setReverseDirection(true);//TODO validate setting
+        angleEncoder.setMinRate();
     }
 
     private void configAngleMotor(){
